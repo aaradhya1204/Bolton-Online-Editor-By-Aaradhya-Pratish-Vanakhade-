@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bolton Online Editor Created By Aaradhya Pratish Vanakhade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+
+    <style>
+        :root {
+            /* VS Code dark theme colors */
+            --vscode-bg: #1e1e1e;
+            --vscode-editor-bg: #1e1e1e;
+            --vscode-text: #d4d4d4;
+            --vscode-accent: #007acc;
+            --vscode-line-numbers: #858585;
+            --vscode-selection-bg: #264f78;
+            --vscode-keyword: #c586c0;
+            --vscode-string: #ce9178;
+            --vscode-number: #b5cea8;
+            --vscode-comment: #6a9955;
+            --vscode-operator: #d4d4d4;
+            --vscode-identifier: #9cdcfe;
+            --vscode-error-text: #f44747;
+        }
+
+        /* --- Base styles for VERY SMALL screens (Mobile-First Approach) --- */
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%; /* Ensure html and body take full height */
+            width: 100%; /* Ensure html and body take full width */
+            overflow: hidden; /* Prevent extra scrollbars on the main viewport */
+        }
+
+        body {
+            font-family: 'Fira Code', 'Roboto Mono', 'Droid Sans Mono', 'Consolas', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top to give more vertical space */
+            min-height: 100vh; /* Full viewport height */
+            background-color: #2c2c2c;
+            color: var(--vscode-text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            font-size: 13px; /* Smaller base font for tiny screens */
+        }
+
+        .window-frame {
+            background-color: var(--vscode-bg);
+            border-radius: 0; /* No border-radius on small screens for full width */
+            box-shadow: none; /* No shadow on small screens */
+            width: 100%; /* Full width on mobile */
+            height: 100vh; /* Full height on mobile */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Important for CodeMirror's internal scrolling */
+        }
+
+        .window-bar {
+            height: 44px; /* Taller for easier tapping on mobile */
+            background-color: #3c3c3c;
+            border-bottom: 1px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            box-sizing: border-box; /* Include padding in height */
+        }
+
+        /* --- TRAFFIC LIGHTS: NOW ALWAYS VISIBLE --- */
+        .traffic-lights {
+            display: flex; /* Make them visible on all screen sizes */
+            gap: 8px; /* Maintain the gap */
+        }
+
+        .traffic-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .traffic-light.close { background-color: #ff5f56; }
+        .traffic-light.minimize { background-color: #ffbd2e; }
+        .traffic-light.maximize { background-color: #27c93f; }
+        /* --- END TRAFFIC LIGHTS --- */
+
+        .window-title {
+            flex-grow: 1;
+            text-align: center;
+            color: #a0a0a0;
+            font-size: 1.1em; /* Slightly larger title for readability */
+            font-weight: 500;
+        }
+
+        .container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column; /* Stack editor and output vertically on small screens */
+            background-color: var(--vscode-editor-bg);
+        }
+
+        .editor-container {
+            display: flex;
+            flex: 1;
+            flex-direction: column; /* Explicitly vertical stacking */
+            gap: 1px;
+            background-color: #000;
+        }
+
+        .code-editor {
+            flex: 1; /* Take equal space with output by default */
+            min-height: 50vh; /* Editor takes at least half the screen height */
+            height: auto; /* Let CodeMirror define its height if content dictates */
+            box-sizing: border-box;
+        }
+
+        /* Adjust CodeMirror's internal elements */
+        .CodeMirror {
+            height: 100%; /* Make CodeMirror fill its container */
+            font-family: inherit; /* Inherit Fira Code */
+            font-size: 0.95em; /* Slightly smaller font for mobile code */
+            line-height: 1.3; /* Slightly increased line-height for readability on small screens */
+            border-radius: 0;
+            padding-bottom: 10px; /* Add some padding at the bottom of the editor content */
+        }
+
+        .CodeMirror-gutters {
+            background-color: #252526 !important;
+            border-right: 1px solid #2a2a2a !important;
+        }
+
+        .CodeMirror-linenumber {
+            color: var(--vscode-line-numbers) !important;
+            padding-right: 8px !important; /* Slightly less padding */
+            font-size: 0.9em; /* Adjust line number font size */
+        }
+
+        /* CodeMirror theme overrides (unchanged) */
+        .cm-s-dracula .cm-keyword { color: var(--vscode-keyword); }
+        .cm-s-dracula .cm-string { color: var(--vscode-string); }
+        .cm-s-dracula .cm-number { color: var(--vscode-number); }
+        .cm-s-dracula .cm-comment { color: var(--vscode-comment); }
+        .cm-s-dracula .cm-operator { color: var(--vscode-operator); }
+        .cm-s-dracula .cm-variable { color: var(--vscode-identifier); }
+        .cm-s-dracula .cm-atom {
+            color: var(--vscode-keyword);
+        }
+
+        .output-console {
+            flex: 1; /* Take equal space with editor by default */
+            min-height: 30vh; /* Output takes at least 30% of screen height */
+            background-color: #000;
+            border-top: 1px solid #000; /* Separator when stacked vertically */
+            border-left: none; /* No left border when stacked */
+            display: flex;
+            flex-direction: column;
+        }
+
+        #output {
+            flex-grow: 1;
+            background-color: #000;
+            color: #cccccc;
+            padding: 10px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            font-family: inherit;
+            font-size: 0.9em; /* Slightly smaller font for mobile output */
+            box-sizing: border-box;
+            line-height: 1.3; /* Increased line-height */
+        }
+
+        .status-bar {
+            background-color: var(--vscode-accent);
+            color: white;
+            height: 50px; /* Even taller for touch targets */
+            display: flex;
+            flex-direction: column; /* Stack status bar items vertically on smallest screens */
+            justify-content: center; /* Center content vertically */
+            align-items: center; /* Center content horizontally */
+            padding: 5px 10px; /* Add vertical padding */
+            font-size: 0.9em;
+            border-top: 1px solid #0056b3;
+            flex-wrap: wrap; /* Allow wrapping */
+        }
+
+        .status-bar .status-left {
+            margin-bottom: 5px; /* Space between language name and buttons */
+        }
+
+        .status-bar .status-left span {
+            display: none; /* Hide language name on very small screens */
+        }
+
+        .status-bar .status-right {
+            display: flex;
+            gap: 10px; /* Standard gap */
+            width: 100%; /* Make buttons take full width if stacked */
+            justify-content: center; /* Center buttons */
+        }
+
+        .status-button {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 10px 15px; /* Larger padding for easier tapping */
+            border-radius: 5px; /* More rounded */
+            font-size: 1em; /* Larger button text */
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            white-space: nowrap;
+            flex-grow: 1; /* Allow buttons to grow to fill space */
+        }
+
+        .status-button:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* --- Breakpoints for progressively larger screens --- */
+
+        /* Small Tablets / Large Phones (e.g., up from 480px width) */
+        @media (min-width: 480px) {
+            body {
+                font-size: 14px; /* Slightly larger base font */
+                align-items: center; /* Center frame vertically again */
+            }
+            .window-bar {
+                height: 38px;
+            }
+            .window-title {
+                font-size: 1em;
+            }
+            .CodeMirror {
+                font-size: 1em; /* Standard font size */
+                line-height: 1.2; /* Standard line-height */
+            }
+            .CodeMirror-linenumber {
+                font-size: 1em;
+            }
+            #output {
+                font-size: 0.95em;
+                line-height: 1.2;
+            }
+            .status-bar {
+                height: 40px;
+                flex-direction: row; /* Layout status bar horizontally */
+                justify-content: space-between; /* Space out items */
+                align-items: center;
+                padding: 0 10px;
+            }
+            .status-bar .status-left {
+                margin-bottom: 0;
+            }
+            .status-bar .status-left span {
+                display: initial; /* Show language name again */
+            }
+            .status-bar .status-right {
+                width: auto; /* Buttons take natural width */
+                justify-content: flex-end; /* Align buttons to the right */
+            }
+            .status-button {
+                padding: 8px 12px; /* Slightly smaller padding */
+                font-size: 0.9em;
+                flex-grow: 0; /* Buttons don't grow */
+            }
+        }
+
+        /* Tablets (e.g., up from 768px width) */
+        @media (min-width: 768px) {
+            .window-frame {
+                border-radius: 8px; /* Reintroduce rounded corners */
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); /* Reintroduce shadow */
+                width: 90%; /* Restore max-width control */
+                height: 80vh; /* Set a specific viewport height for tablets */
+                max-height: 800px; /* Prevent it from getting too tall on large tablets */
+            }
+            .window-bar {
+                height: 30px; /* Back to desktop height */
+            }
+            /* No change needed for .traffic-lights here, as it's already flex */
+            .editor-container {
+                flex-direction: row; /* Stack editor and output horizontally */
+            }
+            .code-editor {
+                flex: 2; /* Editor takes more space */
+                min-width: 300px;
+                min-height: unset; /* Remove min-height from mobile */
+            }
+            .output-console {
+                flex: 1; /* Output takes less space */
+                min-width: 250px;
+                min-height: unset; /* Remove min-height from mobile */
+                border-left: 1px solid #000; /* Restore left border */
+                border-top: none; /* Remove top border when horizontal */
+            }
+            .status-bar {
+                height: 25px; /* Back to desktop height */
+            }
+            .status-button {
+                padding: 3px 8px; /* Back to desktop padding */
+                border-radius: 3px;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Laptops / Desktops (e.g., up from 1024px width) */
+        @media (min-width: 1024px) {
+            .window-frame {
+                width: 80%; /* Even narrower on very large screens */
+                height: 75vh;
+                max-width: 1200px; /* Max width */
+            }
+            body {
+                font-size: 16px; /* Ensure base font size */
+            }
+        }
+
+        /* Large Desktops / TVs (e.g., up from 1440px width) */
+        @media (min-width: 1440px) {
+            .window-frame {
+                width: 70%; /* Further narrow on super large screens */
+                height: 70vh;
+                max-width: 1400px;
+            }
+            body {
+                font-size: 17px; /* Slightly larger base font */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="window-frame">
+        <div class="window-bar">
+            <div class="traffic-lights">
+                <span class="traffic-light close"></span>
+                <span class="traffic-light minimize"></span>
+                <span class="traffic-light maximize"></span>
+            </div>
+            <div class="window-title">Bolton - main.py</div>
+        </div>
+        <div class="container">
+            <div class="editor-container">
+                <div id="code-editor-codemirror" class="code-editor"></div>
+                
+                <div class="output-console">
+                    <pre id="output"></pre>
+                </div>
+            </div>
+            <div class="status-bar">
+                <div class="status-left">
+                    <span>Bolton Language</span>
+                </div>
+                <div class="status-right">
+                    <button id="run-button" class="status-button">Run Code</button>
+                    <button id="clear-button" class="status-button">Clear Output</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const codeEditorDiv = document.getElementById('code-editor-codemirror');
+            const outputConsole = document.getElementById('output');
+            const runButton = document.getElementById('run-button');
+            const clearButton = document.getElementById('clear-button');
+
+            const editor = CodeMirror(codeEditorDiv, {
+                value: "PRINT(\"Hello Bolton\")\n", // Value updated as requested
+                mode: "python",
+                theme: "dracula",
+                lineNumbers: true,
+                indentUnit: 4,
+                tabSize: 4,
+                autocorrect: false,
+                spellcheck: false,
+                readOnly: false,
+                lineWrapping: true,
+            });
+
+            outputConsole.textContent = "Welcome to Bolton Editor!\n\nUse the 'Run Code' button to execute your Bolton language code.";
+
+            runButton.addEventListener('click', async () => {
+                const code = editor.getValue();
+                outputConsole.textContent = 'Running Bolton code...';
+                outputConsole.style.color = '#cccccc';
+
+                try {
+                    const response = await fetch('/run-bolton', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ code: code }),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        if (data.output.includes('Error:') || data.output.includes('Traceback (most recent call last):')) {
+                            outputConsole.style.color = 'var(--vscode-error-text)';
+                        } else {
+                            outputConsole.style.color = '#cccccc';
+                        }
+                        outputConsole.textContent = data.output;
+                    } else {
+                        outputConsole.textContent = `Error from server: ${data.error || 'Unknown server error'}`;
+                        outputConsole.style.color = 'var(--vscode-error-text)';
+                    }
+
+                } catch (error) {
+                    outputConsole.textContent = `Failed to connect to server: ${error}\nMake sure your Flask server is running at http://127.0.0.1:5000/`;
+                    outputConsole.style.color = 'var(--vscode-error-text)';
+                }
+            });
+
+            clearButton.addEventListener('click', () => {
+                editor.setValue('');
+                outputConsole.textContent = "Welcome to Bolton Editor!\n\nUse the 'Run Code' button to execute your Bolton language code.";
+                outputConsole.style.color = '#cccccc';
+            });
+        });
+    </script>
+</body>
+</html>
